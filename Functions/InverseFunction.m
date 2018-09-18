@@ -69,7 +69,7 @@ dLdBy = zeros(length(Y_j(:,1)),num_F,2);
 for II = 1:hyper.iter
     
     % Looping through each beta term to find its gradient vector
-    parfor k = 1:num_F
+    for k = 1:num_F
         
         dLdBx(:,k,:) = Gradient(Bx,By,f,X_i,Y_j,X_i_Tilde,Y_j_Tilde,num_F,p0_X,k,'x',length(X_i(:,1)));
         dLdBy(:,k,:) = Gradient(Bx,By,f,X_i,Y_j,X_i_Tilde,Y_j_Tilde,num_F,p0_X,k,'y',length(Y_j(:,1)));
