@@ -17,7 +17,7 @@ for ss = 1:num_samples
                 z_loc = [z_loc k];
             end
         end
-        if length(z_loc) > 0
+        if ~isempty(z_loc)
             break
         else
             dz = dz + (z(1,2) - z(1,1));
