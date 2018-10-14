@@ -5,8 +5,6 @@ S  = f.S;
 
 Y = zeros(2,dim,length(x_i_));
 
-%y_j_ = sort(y_j_);
-
 x_i_ = sort(x_i_);
 
 for dd = 1:dim

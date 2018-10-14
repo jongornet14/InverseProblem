@@ -24,7 +24,7 @@ f.p_y_x = @(z,M) (1./(2.*pi)).*exp(-(z-M).^2./2);
 f.num_samples = 1e2;
 
 hyper.mu = 0;
-hyper.nu = 0.01;
+hyper.nu = 0.001;
 
 hyper.iter = 1e3;
 
