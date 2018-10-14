@@ -1,8 +1,8 @@
-% repopath = '/scratch/jmg1030/InverseProblems/InverseSolver';
+repopath = '/Users/jonathangornet/Documents/GitHub/InverseSolver';
 addpath(genpath(repopath));
 
-X.X_i = randn(1,1e3);
-Y.Y_j = normrnd(0,5,[1,1e3]);
+X.X_i = ones(1,1e3);
+Y.Y_j = lognrnd(0,1,[1,1e3]);
 
 X.sampleNum = 1e3;
 Y.sampleNum = 1e3;
@@ -16,17 +16,17 @@ f.S = @(z) log(1 + exp(z));
 f.s = @(z) exp(z)./(1 + exp(z));
 
 % Beta terms
-f.Bx = LearnedValues.Bx;
-f.By = LearnedValues.Bx;
+f.Bx = zeros(1,f.num_F,2);
+f.By = zeros(1,f.num_F,2);
 
 f.p_y_x = @(z) 1./sqrt(2.*pi).*exp(-z.^2./2);
 
-f.num_samples = 100;
+f.num_samples = 1e3;
 
 hyper.mu = 0;
 hyper.nu = 0.01;
 
-hyper.iter = 1e5;
+hyper.iter = 1e4;
 
 LearnedValues = InverseFunction(X,Y,f,hyper)
 
