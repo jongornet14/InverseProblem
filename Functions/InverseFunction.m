@@ -82,16 +82,17 @@ for II = 1:hyper.iter
     YPred = Prediction(Bx,By,f,X_i_Tilde,z,num_F,p0_X,length(X_i(:,1)));    
     Loss(II) = Cost(Ydist,YPred(2,:),dim);   
     
-    %if mod(II, hyper.iter/10) == 0
-        %disp([num2str(round(100.*II./hyper.iter)),'% Done!']);
+    if mod(II, hyper.iter/10) == 0
+        
+        disp([num2str(round(100.*II./hyper.iter)),'% Done!']);
         disp(['Loss: ' num2str(Loss(II))]);
         
         disp(['Mean dLdx: ' num2str(mean(mean(dLdBx)))]);
         disp(['Mean dLdy: ' num2str(mean(mean(dLdBy)))]);
         
-        %[X_i_Tilde,p0_X] = Sample(P0_,z,f.num_samples);
+        [X_i_Tilde,p0_X] = Sample(P0_,z,f.num_samples);
         
-    %end
+    end
     
 end
 
