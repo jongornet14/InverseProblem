@@ -1,6 +1,9 @@
-z = 0:0.01:10;
-pert = ones(1,length(z));
-signal = sin(z)./z+(1+1e-10).*z;
+z = -10:0.01:10;
+pert = normpdf(z,0,1);
+%signal = normpdf(z,0,3);
+%signal = lognpdf(z,1,1);
+signal = normpdf(z,0,3);
+%signal = normpdf(z,0,1);
 
 id = find(isnan(signal));
 signal(id) = 1;
@@ -8,13 +11,16 @@ signal(id) = 1;
 params.fx_i = pert./sum(pert);
 params.fy_j = signal./sum(signal);
 
-params.fF = (1+1e-10).*z./sum(signal);
+K = conv(TransitionFunction(z,0),pert,'same');
+K = K./sum(K);
 
-figure
-subplot(2,1,1)
-plot(z,params.fx_i);
-subplot(2,1,2)
-plot(z,params.fy_j-params.fF)
+% figure
+% subplot(3,1,1)
+% plot(z,params.fx_i);
+% subplot(3,1,2)
+% plot(z,params.fy_j)
+% subplot(3,1,3)
+% plot(z,K)
 
 %pert = (pert-min(pert))./(max(pert)-min(pert));
 signal = (signal-min(signal))./(max(signal)-min(signal));
@@ -22,11 +28,8 @@ signal = (signal-min(signal))./(max(signal)-min(signal));
 x_i = NyquistSample(z,pert);
 y_j = NyquistSample(z,signal);
 
-Rx = randi([1 length(x_i)],[1 1e6]);
-Ry = randi([1 length(y_j)],[1 1e6]);
-
-x_i = x_i(Rx);
-y_j = y_j(Ry);
+% x_i = [x_i (10+10).*rand(1,1e3)-10];
+% y_j = [y_j (10+10).*rand(1,1e3)-10];
 
 %%
 Z = transpose(z);
@@ -46,8 +49,8 @@ for ii = 1:length(x_i)
     
 end
 
-P_Y_X = conv(TransitionFunction(z,0),r0);
-P_Y_X = P_Y_X(1:length(z)).*dz;
+P_Y_X = conv(TransitionFunction(z,0),r0,'same');
+P_Y_X = P_Y_X./sum(P_Y_X);
 
 Y = NyquistSample(Z,P_Y_X);
 
@@ -57,7 +60,7 @@ y_j_ = Y(R);
 bins = linspace(z(1),z(end),1e2);
 mapX = hist(x_i,bins);
 mapY = hist(y_j,bins);
-mapZ = hist(y_j_,bins);
+mapZ = hist(Y,bins);
 
 mapX = mapX./sum(mapX);
 mapY = mapY./sum(mapY);
@@ -69,14 +72,15 @@ figure
 subplot(3,1,1)
 plot(bins,mapX)
 subplot(3,1,2)
-plot(bins,mapY-max(mapY)./10.*bins)
+plot(bins,mapY)
 subplot(3,1,3)
-plot(bins,mapZ-max(mapZ)./10.*bins)
+plot(bins,mapZ)
 
 %%
 
 params.x_i = x_i;
 params.y_j = y_j;
+params.iter = 1e4;
 
 params.Wx = vals.Wx;
 params.Wy = vals.Wy;
@@ -86,21 +90,45 @@ params.Wy = vals.Wy;
 %%
 
 figure
-subplot(2,1,1)
-plot(z,(params.fy_j-params.fF)./sum(params.fy_j-params.fF),'b');
+subplot(3,1,1)
+plot(z,params.fy_j./sum(params.fy_j),'k');
 hold on
-plot(vals.z,vals.mapZ-vals.z.*(max(vals.mapZ)./(10)),'r')
-%legend('$$\{y_j\}$$ Distribution','$$\{y_j\}$$ Predication','Interpreter','latex')
-xlabel('$$x$$ Space','Interpreter','latex');ylabel('$$p(\{y_j\})$$','Interpreter','latex');title('Initiatial Prediction','Interpreter','latex')
-subplot(2,1,2)
-plot(z,(params.fy_j-params.fF)./sum(params.fy_j-params.fF),'b');
+plot(z,K./sum(K),'b')
+legend({'$$\{y_j\}$$ Distribution','Initial $$\{y_j\}$$ Predication'},'Interpreter','latex')
+xlabel('$$x$$ Space','Interpreter','latex','fontsize',20);ylabel('$$p(\{y_j\})$$','Interpreter','latex','fontsize',20);title('Initiatial Prediction','Interpreter','latex','fontsize',20)
+subplot(3,1,2)
+plot(z,params.fy_j./sum(params.fy_j),'k');
 hold on
-plot(vals.z,vals.pred-vals.z.*(max(vals.pred)./(10)),'k');
-%legend('$$\{y_j\}$$ Distribution','$$\{y_j\}$$ Prediction','Interpreter','latex')
-xlabel('$$x$$ Space','Interpreter','latex');ylabel('$$p(\{y_j\})$$','Interpreter','latex');title('Trained Prediction','Interpreter','latex')
+plot(vals.z,vals.pred./sum(vals.pred),'r');
+legend({'$$\{y_j\}$$ Distribution','Adjusted $$\{y_j\}$$ Prediction'},'Interpreter','latex')
+xlabel('$$x$$ Space','Interpreter','latex','fontsize',20);ylabel('$$p(\{y_j\})$$','Interpreter','latex','fontsize',20);title('Trained Prediction','Interpreter','latex','fontsize',20)
+subplot(3,1,3)
+plot(z,K./sum(K),'b')
+hold on
+plot(vals.z,vals.pred./sum(vals.pred),'r');
+legend({'Initial $$\{y_j\}$$ Distribution','Adjusted $$\{y_j\}$$ Prediction'},'Interpreter','latex')
+xlabel('$$x$$ Space','Interpreter','latex','fontsize',20);ylabel('$$p(\{y_j\})$$','Interpreter','latex','fontsize',20);title('Trained Prediction','Interpreter','latex','fontsize',20)
+%NiceSave('GaussianFig','~/Desktop/Figures',[])
+%NiceSave('GaussianFigWithDropout','~/Desktop/Figures',[])
+%NiceSave('IdentityFig','~/Desktop/Figures',[])
+%NiceSave('LognormalFig','~/Desktop',[])
+%NiceSave('GaussianFigWithDropout2','~/Desktop/Figures',[])
 
 %%
 
 figure
-%subplot(2,1,1)
-plot(vals.z,vals.p_y_x)
+plot(vals.Loss,'k','linewidth',2)
+xlabel('Epoch','fontsize',20);ylabel('Loss','fontsize',20);title('Cross Entropy Loss','fontsize',20)
+%NiceSave('LognormalLoss','~/Desktop',[])
+%NiceSave('GaussianLoss','~/Desktop/Figures',[])
+%NiceSave('GaussianLossWithDropout','~/Desktop/Figures',[])
+%NiceSave('IdentityLoss','~/Desktop/Figures',[])
+%NiceSave('GaussianLossWithDropout2','~/Desktop/Figures',[])
+
+%%
+
+sum(z.^2.*vals.pred./sum(vals.pred))-sum(z.*vals.pred./sum(vals.pred)).^2
+sum(z.^2.*K./sum(K))-sum(z.*K./sum(K)).^2
+sum(z.^2.*signal./sum(signal))-sum(z.*signal./sum(signal)).^2
+
+%%

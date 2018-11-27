@@ -1,9 +1,8 @@
 z = -10:0.01:10;
 pert = normpdf(z,0,1);
 %signal = normpdf(z,0,3);
-%signal = lognpdf(z,1,1);
-signal = normpdf(z,0,3);
-%signal = normpdf(z,0,1);
+signal = lognpdf(z,1,1);
+%signal = normpdf(z,0,3);
 
 id = find(isnan(signal));
 signal(id) = 1;
@@ -68,22 +67,22 @@ mapZ = mapZ./sum(mapZ);
 
 %%
 
-figure
-subplot(3,1,1)
-plot(bins,mapX)
-subplot(3,1,2)
-plot(bins,mapY)
-subplot(3,1,3)
-plot(bins,mapZ)
+% figure
+% subplot(3,1,1)
+% plot(bins,mapX)
+% subplot(3,1,2)
+% plot(bins,mapY)
+% subplot(3,1,3)
+% plot(bins,mapZ)
 
 %%
 
 params.x_i = x_i;
 params.y_j = y_j;
-params.iter = 1e5;
+params.iter = 2e5;
 
-params.Wx = vals.Wx;
-params.Wy = vals.Wy;
+% params.Wx = vals.Wx;
+% params.Wy = vals.Wy;
 
 [vals] = InverseSolver(params);
 
@@ -108,27 +107,21 @@ hold on
 plot(vals.z,vals.pred./sum(vals.pred),'r');
 legend({'Initial $$\{y_j\}$$ Distribution','Adjusted $$\{y_j\}$$ Prediction'},'Interpreter','latex')
 xlabel('$$x$$ Space','Interpreter','latex','fontsize',20);ylabel('$$p(\{y_j\})$$','Interpreter','latex','fontsize',20);title('Trained Prediction','Interpreter','latex','fontsize',20)
-%NiceSave('GaussianFig','~/Desktop/Figures',[])
-%NiceSave('GaussianFigWithDropout','~/Desktop/Figures',[])
-%NiceSave('IdentityFig','~/Desktop/Figures',[])
-%NiceSave('LognormalFig','~/Desktop',[])
-%NiceSave('GaussianFigWithDropout2','~/Desktop/Figures',[])
+%NiceSave('GaussianFigWithDropout','~/Desktop',[])
+%NiceSave('LognormalFig','~/Desktop/Figures',[])
+NiceSave('LognormalFigWithDropout','~/Desktop/Figures',[])
 
 %%
 
 figure
 plot(vals.Loss,'k','linewidth',2)
 xlabel('Epoch','fontsize',20);ylabel('Loss','fontsize',20);title('Cross Entropy Loss','fontsize',20)
-%NiceSave('LognormalLoss','~/Desktop',[])
-%NiceSave('GaussianLoss','~/Desktop/Figures',[])
-%NiceSave('GaussianLossWithDropout','~/Desktop/Figures',[])
-%NiceSave('IdentityLoss','~/Desktop/Figures',[])
-%NiceSave('GaussianLossWithDropout2','~/Desktop/Figures',[])
+%NiceSave('LognormalLoss','~/Desktop/Figures',[])
+%NiceSave('GaussianLoss','~/Desktop',[])
+NiceSave('LognormalLossWithDropout','~/Desktop/Figures',[])
 
 %%
 
 sum(z.^2.*vals.pred./sum(vals.pred))-sum(z.*vals.pred./sum(vals.pred)).^2
 sum(z.^2.*K./sum(K))-sum(z.*K./sum(K)).^2
 sum(z.^2.*signal./sum(signal))-sum(z.*signal./sum(signal)).^2
-
-%%
