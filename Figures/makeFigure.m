@@ -16,10 +16,10 @@ plot(P.z,P.p_y_x_,'b')
 xlabel('$$x$$ Space','Interpreter','latex');ylabel('$$p^*(y|x)$$','Interpreter','latex');title('Adjusted $$p^*(y|x)$$','Interpreter','latex')
 
 subplot(3,2,4)
-plot(P.z,P.YdistPred0,'b')
+plot(P.YPred0(1,:),P.YPred0(2,:),'b')
 xlabel('$$y$$ Space','Interpreter','latex');ylabel('$$\rho_1(y)$$','Interpreter','latex');title('Initiatial $$\rho_1(y)$$','Interpreter','latex')
 subplot(3,2,6)
-plot(P.z,P.YdistPred,'b')
+plot(P.YPred(1,:),P.YPred(2,:),'b')
 xlabel('$$y$$ Space','Interpreter','latex');ylabel('$$\rho_1^*(y)$$','Interpreter','latex');title('Adjusted $$\rho_1^*(y)$$','Interpreter','latex')
 
 end

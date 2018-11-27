@@ -1,31 +1,36 @@
 function [XY_ij,p] = Sample(fsample,z,num_samples)
 
 XY_ij = zeros(length(z(:,1)),num_samples);
-p = zeros(length(z(:,1)),num_samples);
+p = zeros(1,num_samples);
 
 for ss = 1:num_samples
     
-    % make sure you are not getting samples of zero probability
-    r = min(fsample) + (max(fsample) - min(fsample)).*rand(length(z(:,1)),1);
+    P = zeros(1,ceil(length(z(1,:))/2));
+    loc = zeros(length(z(:,1)),ceil(length(z(1,:))/2));
     
-    for d = 1:length(z(:,1))
-        z_loc = [];
-        dz = z(1,2) - z(1,1);
-        while true 
-        for k = 1:length(z(1,:))
-            if find(abs(fsample(d,k) - r(d)) < dz)
-                z_loc = [z_loc k];
-            end
+    for ij = 1:ceil(length(z(1,:))/10)
+        
+        xy = randi([1,length(z(1,:))],length(z(:,1)),1);
+        
+        if length(z(:,1)) == 1 
+            P(ij) = fsample(xy);
+            loc(1,ij) = z(1,xy);
+        elseif length(z(:,1)) == 2
+            P(ij) = fsample(xy(1),xy(2));
+            loc(1,ij) = z(1,xy(1));
+            loc(2,ij) = z(2,xy(2));
+        elseif length(z(:,1)) == 3
+            P(ij) = fsample(xy(1),xy(2),xy(3));
+            loc(1,ij) = z(1,xy(1));
+            loc(2,ij) = z(2,xy(2));
+            loc(3,ij) = z(3,xy(3));
         end
-        if ~isempty(z_loc)
-            break
-        else
-            dz = dz + (z(1,2) - z(1,1));
-        end
-        end
-        XY_ij(d,ss) = z(z_loc(randi(length(z_loc))));
-        p(d,ss) = r(d);
+        
     end
+    
+    id = find(P == max(P));
+    XY_ij(:,ss) = loc(:,id(randi([1,length(id)],1)));
+    p(ss) = P(id(randi([1,length(id)],1)))./sum(fsample(:));
     
 end
 
