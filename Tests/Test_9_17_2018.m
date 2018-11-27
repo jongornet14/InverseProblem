@@ -1,4 +1,4 @@
-function Test_9_17_2018(ii)
+lsfunction Test_9_17_2018(ii)
 
 % Inverse Tests
 % Jonathan Gornet
