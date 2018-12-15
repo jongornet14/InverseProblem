@@ -1,7 +1,7 @@
-function [dW,E,ED] = AdaDelta(E,ED,dL)
+function [dW,E,ED] = AdaDelta(E,ED,dL,n)
 
 g = 0.9;
-n = 1e-3;
+%n = 1e-6;
 
 E = g.*E + (1-g).*dL.^2;
 

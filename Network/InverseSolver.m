@@ -3,29 +3,14 @@ function [vals] = InverseSolver(params)
 repopath = '~/Documents/Github/InverseSolver';
 addpath(genpath(repopath));
 
-vecField = 6;
-hidden_num = 6;
+hidden_num = 8;
 
-%A  = @(z) [cos(z.*(transpose(0:vecField-1)));sin(z.*transpose(0:vecField-1));z.^(transpose(0:vecField-1));exp(z.*transpose(-2:2))];
-%A  = @(z) [exp(-z.^2./transpose(1:vecField));z.^transpose(0:vecField-1);exp(z.*transpose(-2:2))];
-%A  = @(z) [exp(-z.^2./transpose(1:vecField));z.^transpose(0:vecField-1);exp(z.*transpose(0:vecField-1))];
-%A  = @(z) [cos(z.*(transpose(0:vecField-1)));sin(z.*transpose(0:vecField-1))];
-A = @(x) [ cos(0.*x); 2.*x; 4.*x.^2 - 2; 8.*x.^3 - 12.*x; 16.*x.^4 - 48.*x.^2 + 12; 32.*x.^5 - 160.*x.^3 + 120.*x];
+%A = @(x) [ x.^(transpose(1:10)).*exp(-x.^2);x.^(transpose(1:10)).*exp(-x.^2./2);x.^(transpose(1:10)).*exp(-x.^2./3) ];
+A = @(x) [ ones(size(x)); 2.*x; 4.*x.^2 - 2; 8.*x.^3 - 12.*x; 16.*x.^4 - 48.*x.^2 + 12; 32.*x.^5 - 160.*x.^3 + 120.*x; 64.*x.^6 - 480.*x.^4 + 720.*x.^2 - 120; 128.*x.^7 - 1344.*x.^5 + 3360.*x.^3 - 1680.*x ];
+%A = @(x) [ ones(size(x)); 2.*x; 4.*x.^2 - 2; 8.*x.^3 - 12.*x; 16.*x.^4 - 48.*x.^2 + 12; 32.*x.^5 - 160.*x.^3 + 120.*x; 64.*x.^6 - 480.*x.^4 + 720.*x.^2 - 120; 128.*x.^7 - 1344.*x.^5 + 3360.*x.^3 - 1680.*x; 256.*x.^8 - 3584.*x.^6 + 13440.*x.^4 - 13440.*x.^2 + 1680; 512.*x.^9 - 9216.*x.^7 + 48384.*x.^5 - 80640.*x.^3 + 30240.*x; 1024.*x.^10 - 23040.*x.^8 + 161280.*x.^6 - 403200.*x.^4 + 302400.*x.^2 - 30240];
 
-% F  = @(z) exp(z)+1e-8;
-% f  = @(z) exp(z)+1e-8;
-
-F = @(z) z.^2;
-f = @(z) 2.*z;
-
-% F = @(z) max(z,0)+1e-8;
-% f = @(z) heaviside(z)+1e-8;
-
-% F = @(z) log(1+exp(z))+1e-8;
-% f = @(z) 1./(1+exp(-z))+1e-8;
-
-% F = @(z) atan(z);
-% f = @(z) 1./(1+z.^2);
+F = @(x) sqrt(1+x.^2)-1+1e-8;
+f = @(x) x.*(1+x.^2).^(-1/2)+1e-8;
 
 x_i = params.x_i;
 y_j = params.y_j;
@@ -33,174 +18,123 @@ y_j = params.y_j;
 fx_i = params.fx_i;
 fy_j = params.fy_j;
 
-%fF = params.fF;
-
-p_x_i_ = zeros(1,length(x_i));
-p_y_j_ = zeros(1,length(x_i));
-
-x_i_ = zeros(1,length(x_i));
-y_j_ = zeros(1,length(x_i));
-
 z = -10:0.01:10;
-Z = transpose(z);
-dZ = mean(diff(Z));
-
-r0 = sum(exp(-(Z-x_i).^2),2);
-r0 = r0./sum(r0);
-
-for ii = 1:length(x_i)
-    
-    r = rand;
-    
-    [c,index] = min(abs(r-cumsum(r0)));
-    x_i_(ii) = Z(index);
-    p_x_i_(ii) = r;
-    
-end
-    
-P_Y_X = conv(TransitionFunction(linspace(0,10,length(x_i)),0),r0);
-P_Y_X = P_Y_X(1:length(Z)).*dZ;
-
-Y = NyquistSample(Z,P_Y_X);
-
-R = randi([1 length(Y)],[1 1e4]);
-y_j_ = Y(R);
-
-iter = params.iter;
-
-Gradx = nan(hidden_num,iter);
-Grady = nan(hidden_num,iter);
-
-% mapX = hist(x_i,z);
-% mapY = hist(y_j,z);
-% mapZ = hist(y_j_,z);
-% 
-% mapX = movmean(mapX./sum(mapX),10);
-% mapY = movmean(mapY./sum(mapY),10);
-% mapZ = movmean(mapZ./sum(mapZ),10);
-
-% figure
-% subplot(3,1,1)
-% plot(z,mapX)
-% subplot(3,1,2)
-% plot(z,mapY)
-% subplot(3,1,3)
-% plot(z,mapZ)
-
-Loss = zeros(1,iter);
 
 %%
 
-if isfield(params,'Wx')
-Wx = params.Wx;
-else
-Wx = randn(1,hidden_num); %x values
+m = length(x_i);
+n = length(y_j);
+m_ = 1e4;
+n_ = 1e3;
+
+X_i = params.X_I;
+Y_j = params.Y_J;
+X_i_ = params.X_I_;
+Y_j_ = params.Y_J_;
+
+P = params.p_x_i_;
+
+Null = sum(exp(-(params.x_i_ - transpose(params.y_j)).^2),1)./sum(sum(exp(-(params.x_i_ - transpose(params.y_j)).^2),1));
+
+%Likelihood = zeros(1,params.iter);
+
+%%
+if isfield(params,'W')    
+W = params.W;
+else    
+W = randn(1,2*hidden_num);
 end
-if isfield(params,'Wy')
-Wy = params.Wy;
-else
-Wy = randn(1,hidden_num); %y values
-end
 
-Ex = zeros(1,hidden_num);
-Ey = zeros(1,hidden_num);
+E = zeros(1,2*hidden_num);
+ED = zeros(1,2*hidden_num);
 
-EDx = zeros(1,hidden_num);
-EDy = zeros(1,hidden_num);
+GradW = zeros(2*hidden_num,params.iter);
 
-predictions = zeros(10,length(z));
+l = params.l;
 
-a = 1;
-b = 0;
-w = zeros(hidden_num,1);
+Lnum = 1;
 
 %%
 
 disp('Starting Training...');
 
-Dx = ones(1,hidden_num);
-Dy = ones(1,hidden_num);
-
-for epoch = 1:iter
+for epoch = 1:params.iter
     
-    Rx = randi([1 length(x_i)],[1 1e4]);
-    Ry = randi([1 length(y_j)],[1 1e4]);
+    dW = [- (1/m).*sum(f(W(1:hidden_num)*X_i)./F(W(1:hidden_num)*X_i).*X_i,2) + (1/m_).*(1/n_).*sum((reshape(sum(F(sum(transpose(W(hidden_num+1:2*hidden_num)).*Y_j_,1)),2),[1,m_]).*f(W(1:hidden_num)*X_i_)./P.*X_i_)./(Null+1e-8),2); 
+          - (1/n).*sum(f(W(hidden_num+1:2*hidden_num)*Y_j)./F(W(hidden_num+1:2*hidden_num)*Y_j).*Y_j,2) + (1/m_).*(1/n_).*sum((reshape(sum(f(sum(transpose(W(hidden_num+1:2*hidden_num)).*Y_j_,1)).*Y_j_,2),[hidden_num,m_]).*F(W(1:hidden_num)*X_i_)./P)./(Null+1e-8),2)];
     
-    Rx_ = randi([1 length(x_i_)],[1 1e4]);
-    Ry_ = randi([1 length(y_j_)],[1 1e4]);
+%     dW = [- sum((f(W(1:hidden_num)*A(z))./F(W(1:hidden_num)*A(z))).*A(z).*mean(diff(z)),2) + sum((sum(TransitionFunction(z,0).*f(W(1:hidden_num)*A(z)).*A(z).*mean(diff(z)),2).*F(W(hidden_num+1:2*hidden_num)*A(z)).*mean(diff(z)))./(fy_j+1e-8),2);
+%           - sum((f(W(hidden_num+1:2*hidden_num)*A(z))./F(W(hidden_num+1:2*hidden_num)*A(z))).*A(z).*mean(diff(z)),2) + sum((sum(TransitionFunction(z,0).*F(W(1:hidden_num)*A(z)).*mean(diff(z)),2).*f(W(hidden_num+1:2*hidden_num)*A(z)).*A(z).*mean(diff(z)))./(fy_j+1e-8),2)];
+%     
+%     Likelihood(epoch) = - sum(log(F(W(1:hidden_num)*A(z))).*mean(diff(z))) - sum(log(F(W(hidden_num+1:2*hidden_num)*A(z))).*mean(diff(z))) + 2.*sum((sum(TransitionFunction(z,0).*F(W(1:hidden_num)*A(z)).*mean(diff(z))).*F(W(hidden_num+1:2*hidden_num)*A(z)).*mean(diff(z))+1e-8)./(fy_j+1e-8));
 
-    if mod(epoch,iter/10) == 0
-        p_y_x = F(Wy*A(z)).*(TransitionFunction(z,0))./sum(F(Wy*A(z)).*(TransitionFunction(z,0)));
-        pred = conv(fx_i,p_y_x,'same');
-        disp(['Loss: ' num2str(Cost(fy_j./sum(fy_j),pred./sum(pred),1))]);
-        disp([num2str(round(100.*epoch./iter)),'% Done!'])
-        Loss(epoch) = Cost(fy_j./sum(fy_j),pred./sum(pred),1);
-        predictions(round(10.*epoch./iter),:) = pred./sum(pred);
+%     dW = [- sum((f(W(1:hidden_num)*A(z))./F(W(1:hidden_num)*A(z))).*A(z).*mean(diff(z)),2) + sum((sum(TransitionFunction(z,0).*f(W(1:hidden_num)*A(z)).*A(z).*mean(diff(z)),2).*F(W(hidden_num+1:2*hidden_num)*A(z)).*mean(diff(z))),2);
+%           - sum((f(W(hidden_num+1:2*hidden_num)*A(z))./F(W(hidden_num+1:2*hidden_num)*A(z))).*A(z).*mean(diff(z)),2) + sum((sum(TransitionFunction(z,0).*F(W(1:hidden_num)*A(z)).*mean(diff(z)),2).*f(W(hidden_num+1:2*hidden_num)*A(z)).*A(z).*mean(diff(z))),2)];
+%     
+%     Likelihood(epoch) = - sum(log(F(W(1:hidden_num)*A(z))).*mean(diff(z))) - sum(log(F(W(hidden_num+1:2*hidden_num)*A(z))).*mean(diff(z))) + 2.*sum((sum(TransitionFunction(z,0).*F(W(1:hidden_num)*A(z)).*mean(diff(z))).*F(W(hidden_num+1:2*hidden_num)*A(z)).*mean(diff(z))+1e-8));
+    
+    if mod(epoch,25) == 0
+        Likelihood(Lnum) = - (1/m).*sum(log(F(W(1:hidden_num)*X_i)),2) - (1/n).*sum(log(F(W(hidden_num+1:2*hidden_num)*Y_j)),2) + 2.*(1/m_).*(1/n_).*sum((reshape(sum(F(sum(transpose(W(hidden_num+1:2*hidden_num)).*Y_j_,1)),2),[1,m_]).*F(W(1:hidden_num)*X_i_)./P)./(Null+1e-8),2);
+        disp(['Likelihood: ' num2str(Likelihood(Lnum))])
+        pred = conv(fx_i,F(W(hidden_num+1:2*hidden_num)*A(z)).*(TransitionFunction(z,0))./sum(F(W(hidden_num+1:2*hidden_num)*A(z)).*(TransitionFunction(z,0))),'same');
+        pred = pred./sum(pred);
+        disp(['Cost: ' num2str(Cost(pred,fy_j,1))])
+        Lnum = Lnum + 1;
     end
     
-    p_y_x = F(Wy*A(z)).*TransitionFunction(z,0)./sum(F(Wy*A(z)).*TransitionFunction(z,0));
-    pred = conv(fx_i,p_y_x,'same');
-    Loss(epoch) = Cost(fy_j./sum(fy_j),pred./sum(pred),1);
-    
-    dLlx = (1/length(x_i(Rx))).*sum(f(Wx*A(x_i(Rx)))./F(Wx*A(x_i(Rx))).*A(x_i(Rx)),2);
-    dLly = (1/length(y_j(Ry))).*sum(f(Wx*A(y_j(Ry)))./F(Wx*A(y_j(Ry))).*A(y_j(Ry)),2);
-    
-    Lrx = (1/length(x_i_(Rx_))).*sum(F(Wx*A(x_i_(Rx_)))./p_x_i_(Rx_),2);
+    if mod(epoch,100) == 0
+        
+        p_y_x = F(W(hidden_num+1:2*hidden_num)*A(z)).*(TransitionFunction(z,0))./sum(F(W(hidden_num+1:2*hidden_num)*A(z)).*(TransitionFunction(z,0)));
+        
+        vals.W = W;
+        vals.GradW = GradW;
 
-    dLrx = (1/length(y_j_(Ry_))).*sum(F(Wy*A(y_j_(Ry_))),2).*(1/length(x_i_(Rx_))).*sum(f(Wx*A(x_i_(Rx_)))./p_x_i_(Rx_).*A(x_i_(Rx_)),2);
-    dLry = (1/length(y_j_(Ry_))).*sum(f(Wy*A(y_j_(Ry_))).*A(y_j_(Ry_)),2).*Lrx;
-    
-    dLx = Dx.*transpose(dLlx-dLrx);
-    dLy = Dy.*transpose(dLly-dLry);
-    
-    Gradx(:,epoch) = transpose(Dx).*(dLlx-dLrx);
-    Grady(:,epoch) = transpose(Dy).*(dLly-dLry);
-    
-    if any(isnan(dLx))
-        warning('Numerical Error')
-        break
-    elseif any(isinf(dLx))
-        warning('Numerical Error')
-        break
-    end
-    if any(isnan(dLy))
-        warning('Numerical Error')
-        break
-    elseif any(isinf(dLy))
-        warning('Numerical Error')
-        break
+        vals.l = l;
+
+        vals.p_y_x = p_y_x;
+        vals.pred = pred;
+
+        vals.z = z;
+        
+        save([params.path 'NetworkWeightsTest'],'-struct','vals','-v7.3');
+        
     end
     
-    [dWx,Ex,EDx] = AdaDelta(Ex,EDx,dLx);
-    [dWy,Ey,EDy] = AdaDelta(Ey,EDy,dLy);
+    if Lnum > 1
+        if Likelihood(Lnum) > Likelihood(Lnum - 1)
+            l = l+1;
+        end
+    end
+        
+    if isnan(dW)
+        break
+    end
+    if isinf(dW)
+        break
+    end
     
-    Wx = Wx + dWx;
-    Wy = Wy + dWy;
+    GradW(:,epoch) = dW;
+    
+    %[dW,E,ED] = AdaDelta(E,ED,transpose(dW),l);
+    
+    %W = W - dW;
+    W = W - transpose(10.^(-l-ceil(log10(abs(dW)))).*dW);
     
 end
 
-figure
-plot(Loss,'k','linewidth',3);
-
-p_y_x = F(Wy*A(z)).*(TransitionFunction(z,0))./sum(F(Wy*A(z)).*(TransitionFunction(z,0)));
+%%
+p_y_x = F(W(hidden_num+1:2*hidden_num)*A(z)).*(TransitionFunction(z,0))./sum(F(W(hidden_num+1:2*hidden_num)*A(z)).*(TransitionFunction(z,0)));
 
 pred = conv(fx_i,p_y_x,'same');
 
-vals.Wx = Wx;
-vals.Wy = Wy;
+vals.W = W;
+vals.GradW = GradW;
 
-vals.PY = Wy*A(z);
+vals.l = l;
 
 vals.p_y_x = p_y_x;
 vals.pred = pred;
 
 vals.z = z;
-
-vals.Loss = Loss;
-
-vals.predictions = predictions;
-
-vals.Gradx = Gradx;
-vals.Grady = Grady;
 
 end

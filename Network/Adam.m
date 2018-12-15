@@ -1,5 +1,7 @@
 function [dW,mt,vt] = Adam(mt,vt,dL)
 
+n = 1e-2;
+
 b1 = 0.9;
 b2 = 0.999;
 e = 1e-8;
@@ -10,6 +12,6 @@ vt = b2.*vt + (1-b2).*dL.^2;
 mt = mt./(1-b1);
 vt = vt./(1-b2);
 
-dW = mt./(sqrt(vt)+e);
+dW = n.*mt./(sqrt(vt)+e);
 
 end
