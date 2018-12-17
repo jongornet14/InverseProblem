@@ -76,8 +76,10 @@ plot(bins,mapZ)
 
 %%
 
-A = @(x) [ ones(size(x)); 2.*x; 4.*x.^2 - 2; 8.*x.^3 - 12.*x; 16.*x.^4 - 48.*x.^2 + 12; 32.*x.^5 - 160.*x.^3 + 120.*x; 64.*x.^6 - 480.*x.^4 + 720.*x.^2 - 120; 128.*x.^7 - 1344.*x.^5 + 3360.*x.^3 - 1680.*x ];
+%A = @(x) [ ones(size(x)); 2.*x; 4.*x.^2 - 2; 8.*x.^3 - 12.*x; 16.*x.^4 - 48.*x.^2 + 12; 32.*x.^5 - 160.*x.^3 + 120.*x; 64.*x.^6 - 480.*x.^4 + 720.*x.^2 - 120; 128.*x.^7 - 1344.*x.^5 + 3360.*x.^3 - 1680.*x ];
 %A = @(x) [ x.^(transpose(1:10)).*exp(-x.^2);x.^(transpose(1:10)).*exp(-x.^2./2);x.^(transpose(1:10)).*exp(-x.^2./3) ];
+
+A = @(x) [x.*exp(-x.^2);x.^2.*exp(-x.^2)];
 
 params.x_i = x_i;
 params.y_j = y_j;
@@ -90,9 +92,6 @@ params.Y_J = A(y_j);
 
 params.X_I_ = A(x_i_);
 params.Y_J_ = A(y_j_);
-
-params.NullX_I = A(Rx_i);
-params.NullY_J = A(Ry_j);
 
 params.p_x_i_ = p_x_i_;
 
@@ -128,11 +127,11 @@ L = - (1/m).*sum(log(F(W(1:hidden_num)*X_i)),2) - (1/n).*sum(log(F(W(hidden_num+
 
 %%
 
-hidden_num = 8;
+hidden_num = 1;
 
 params.iter = 1e4;
-params.W = W;
-params.l = 1e-3.*ones(1,2*hidden_num);
+params.W = [0 -10];
+params.l = 1;
 
 params.path = '/Users/jonathangornet/Documents/GitHub/InverseSolver/Network/';
 
@@ -154,13 +153,13 @@ xlabel('$$x$$ Space','Interpreter','latex','fontsize',20);ylabel('$$p(\{y_j\})$$
 subplot(3,1,2)
 plot(z,params.fy_j,'k');
 hold on
-plot(z,pred./sum(pred),'r');
+plot(z,pred,'r');
 legend({'$$\{y_j\}$$ Distribution','Adjusted $$\{y_j\}$$ Prediction'},'Interpreter','latex')
 xlabel('$$x$$ Space','Interpreter','latex','fontsize',20);ylabel('$$p(\{y_j\})$$','Interpreter','latex','fontsize',20);title('Trained Prediction','Interpreter','latex','fontsize',20)
 subplot(3,1,3)
 plot(z,K./sum(K),'b')
 hold on
-plot(z,pred./sum(pred),'r');
+plot(z,pred,'r');
 legend({'Initial $$\{y_j\}$$ Distribution','Adjusted $$\{y_j\}$$ Prediction'},'Interpreter','latex')
 xlabel('$$x$$ Space','Interpreter','latex','fontsize',20);ylabel('$$p(\{y_j\})$$','Interpreter','latex','fontsize',20);title('Trained Prediction','Interpreter','latex','fontsize',20)
 %NiceSave('GaussianFig','~/Desktop/Figures',[])

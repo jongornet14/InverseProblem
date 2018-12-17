@@ -3,7 +3,7 @@ function [vals] = InverseSolver(params)
 repopath = '~/Documents/Github/InverseSolver';
 addpath(genpath(repopath));
 
-hidden_num = 8;
+hidden_num = 1;
 
 %A = @(x) [ x.^(transpose(1:10)).*exp(-x.^2);x.^(transpose(1:10)).*exp(-x.^2./2);x.^(transpose(1:10)).*exp(-x.^2./3) ];
 A = @(x) [ ones(size(x)); 2.*x; 4.*x.^2 - 2; 8.*x.^3 - 12.*x; 16.*x.^4 - 48.*x.^2 + 12; 32.*x.^5 - 160.*x.^3 + 120.*x; 64.*x.^6 - 480.*x.^4 + 720.*x.^2 - 120; 128.*x.^7 - 1344.*x.^5 + 3360.*x.^3 - 1680.*x ];
@@ -34,8 +34,6 @@ Y_j_ = params.Y_J_;
 
 P = params.p_x_i_;
 
-Null = sum(exp(-(params.x_i_ - transpose(params.y_j)).^2),1)./sum(sum(exp(-(params.x_i_ - transpose(params.y_j)).^2),1));
-
 %Likelihood = zeros(1,params.iter);
 
 %%
@@ -58,10 +56,12 @@ Lnum = 1;
 
 disp('Starting Training...');
 
+tic
+
 for epoch = 1:params.iter
     
-    dW = [- (1/m).*sum(f(W(1:hidden_num)*X_i)./F(W(1:hidden_num)*X_i).*X_i,2) + (1/m_).*(1/n_).*sum((reshape(sum(F(sum(transpose(W(hidden_num+1:2*hidden_num)).*Y_j_,1)),2),[1,m_]).*f(W(1:hidden_num)*X_i_)./P.*X_i_)./(Null+1e-8),2); 
-          - (1/n).*sum(f(W(hidden_num+1:2*hidden_num)*Y_j)./F(W(hidden_num+1:2*hidden_num)*Y_j).*Y_j,2) + (1/m_).*(1/n_).*sum((reshape(sum(f(sum(transpose(W(hidden_num+1:2*hidden_num)).*Y_j_,1)).*Y_j_,2),[hidden_num,m_]).*F(W(1:hidden_num)*X_i_)./P)./(Null+1e-8),2)];
+    dW = [- (1/m).*sum(f(W(1:hidden_num)*X_i)./F(W(1:hidden_num)*X_i).*X_i,2) + (1/m_).*(1/n_).*sum((reshape(sum(F(sum(transpose(W(hidden_num+1:2*hidden_num)).*Y_j_,1)),2),[1,m_]).*f(W(1:hidden_num)*X_i_)./P.*X_i_),2); 
+          - (1/n).*sum(f(W(hidden_num+1:2*hidden_num)*Y_j)./F(W(hidden_num+1:2*hidden_num)*Y_j).*Y_j,2) + (1/m_).*(1/n_).*sum((reshape(sum(f(sum(transpose(W(hidden_num+1:2*hidden_num)).*Y_j_,1)).*Y_j_,2),[hidden_num,m_]).*F(W(1:hidden_num)*X_i_)./P),2)];
     
 %     dW = [- sum((f(W(1:hidden_num)*A(z))./F(W(1:hidden_num)*A(z))).*A(z).*mean(diff(z)),2) + sum((sum(TransitionFunction(z,0).*f(W(1:hidden_num)*A(z)).*A(z).*mean(diff(z)),2).*F(W(hidden_num+1:2*hidden_num)*A(z)).*mean(diff(z)))./(fy_j+1e-8),2);
 %           - sum((f(W(hidden_num+1:2*hidden_num)*A(z))./F(W(hidden_num+1:2*hidden_num)*A(z))).*A(z).*mean(diff(z)),2) + sum((sum(TransitionFunction(z,0).*F(W(1:hidden_num)*A(z)).*mean(diff(z)),2).*f(W(hidden_num+1:2*hidden_num)*A(z)).*A(z).*mean(diff(z)))./(fy_j+1e-8),2)];
@@ -74,12 +74,14 @@ for epoch = 1:params.iter
 %     Likelihood(epoch) = - sum(log(F(W(1:hidden_num)*A(z))).*mean(diff(z))) - sum(log(F(W(hidden_num+1:2*hidden_num)*A(z))).*mean(diff(z))) + 2.*sum((sum(TransitionFunction(z,0).*F(W(1:hidden_num)*A(z)).*mean(diff(z))).*F(W(hidden_num+1:2*hidden_num)*A(z)).*mean(diff(z))+1e-8));
     
     if mod(epoch,25) == 0
-        Likelihood(Lnum) = - (1/m).*sum(log(F(W(1:hidden_num)*X_i)),2) - (1/n).*sum(log(F(W(hidden_num+1:2*hidden_num)*Y_j)),2) + 2.*(1/m_).*(1/n_).*sum((reshape(sum(F(sum(transpose(W(hidden_num+1:2*hidden_num)).*Y_j_,1)),2),[1,m_]).*F(W(1:hidden_num)*X_i_)./P)./(Null+1e-8),2);
+        toc
+        Likelihood(Lnum) = - (1/m).*sum(log(F(W(1:hidden_num)*X_i)),2) - (1/n).*sum(log(F(W(hidden_num+1:2*hidden_num)*Y_j)),2) + 2.*(1/m_).*(1/n_).*sum((reshape(sum(F(sum(transpose(W(hidden_num+1:2*hidden_num)).*Y_j_,1)),2),[1,m_]).*F(W(1:hidden_num)*X_i_)./P),2);
         disp(['Likelihood: ' num2str(Likelihood(Lnum))])
         pred = conv(fx_i,F(W(hidden_num+1:2*hidden_num)*A(z)).*(TransitionFunction(z,0))./sum(F(W(hidden_num+1:2*hidden_num)*A(z)).*(TransitionFunction(z,0))),'same');
         pred = pred./sum(pred);
         disp(['Cost: ' num2str(Cost(pred,fy_j,1))])
         Lnum = Lnum + 1;
+        tic
     end
     
     if mod(epoch,100) == 0
@@ -100,11 +102,13 @@ for epoch = 1:params.iter
         
     end
     
-    if Lnum > 1
-        if Likelihood(Lnum) > Likelihood(Lnum - 1)
-            l = l+1;
-        end
-    end
+%     if Lnum > 3
+%         if Likelihood(Lnum-1) > Likelihood(Lnum-2)
+%             if l < 9
+%             l = l+1;
+%             end
+%         end
+%     end
         
     if isnan(dW)
         break
