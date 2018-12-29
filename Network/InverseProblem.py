@@ -77,7 +77,7 @@ class GenerateValues:
         self.x_i = self.x0[0][np.random.randint(len(self.x0[0]),size=[25000,])]
         self.y_j = self.y0[0][np.random.randint(len(self.y0[0]),size=[25000,])]
 
-        self.fx_i_ = sum(np.exp(-np.power(self.X.resize([1,len(self.X)])-self.x_i.resize([len(self.x_i),1]),2)))
+        self.fx_i_ = sum(np.exp(-np.power(self.X.reshape([1,len(self.X)])-self.x_i.reshape([len(self.x_i),1]),2)))
 
         self.x0_ = self.Sample(self.X,self.fx_i_)
 
