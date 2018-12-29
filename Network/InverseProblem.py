@@ -7,7 +7,7 @@ from torch.autograd import Variable
 
 import scipy.stats
 
-cuda = torch.device('cuda')
+cuda = torch.cuda.device(0)
 
 class SchrodingerBridge(nn.Module):
 
