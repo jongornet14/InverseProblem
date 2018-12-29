@@ -166,16 +166,16 @@ class GenerateValues:
 
     def UseCuda(self):
 
-        self.X_i = self.X_i.to(device=cuda)
-        self.Y_j = self.Y_j.to(device=cuda)
+        self.X_i = self.X_i.cuda()
+        self.Y_j = self.Y_j.cuda()
 
-        self.X_i_ = self.X_i_.to(device=cuda)
-        self.Y_j_ = self.Y_j_.to(device=cuda)
+        self.X_i_ = self.X_i_.cuda()
+        self.Y_j_ = self.Y_j_.cuda()
 
-        self.P = self.P.to(device=cuda)
+        self.P = self.P.cuda()
 
 model = SchrodingerBridge()
-model = model.to(device=cuda)
+model = model.cuda()
 
 optimizerX = optim.SGD(model.parameters(),lr=1e-3,momentum=1e-5,nesterov=True,weight_decay=0)
 optimizerY = optim.SGD(model.parameters(),lr=1e-3,momentum=1e-5,nesterov=True,weight_decay=0)
