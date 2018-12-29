@@ -174,6 +174,8 @@ class GenerateValues:
 
         self.P = self.P.cuda()
 
+G = GenerateValues()
+
 model = SchrodingerBridge()
 model = model.cuda()
 
