@@ -14,6 +14,12 @@ n=${SLURM_ARRAY_TASK_ID}
 
 module purge
 
+module load cuda/9.2.88
+module load python3/intel/3.6.3
+module load pytorch/python3.6/0.3.0_4
+module load numpy/python3.6/intel/1.14.0
+module load scipy/intel/0.19.1
+
 module load anaconda3/5.3.1
 
 python3 InverseProblem.py

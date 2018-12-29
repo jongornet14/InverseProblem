@@ -38,7 +38,7 @@ class SchrodingerBridge(nn.Module):
 
         X_i_ = self.Activation( self.Bx(x_) )
 
-        Y_j_ = self.Activation( F.conv1d(y_,self.By.weight.reshape([self.output_num,self.embed_num,1])) )
+        Y_j_ = self.Activation( F.conv1d(y_,self.By.weight.resize([self.output_num,self.embed_num,1])) )
 
         X = - (1/self.val_num)*sum(torch.log(X_i))
         C = (1/self.m)*(1/self.n)*sum((Y_j_.sum(2))*(X_i_/p))
@@ -52,7 +52,7 @@ class SchrodingerBridge(nn.Module):
 
         X_i_ = self.softplus( self.Bx(x_) ) + 1e-8
 
-        Y_j_ = self.softplus( F.conv1d(y_,self.By.weight.reshape([self.output_num,self.embed_num,1])) ) + 1e-8
+        Y_j_ = self.softplus( F.conv1d(y_,self.By.weight.resize([self.output_num,self.embed_num,1])) ) + 1e-8
 
         Y = - (1/self.val_num)*sum(torch.log(Y_j))
         C = (1/self.m)*(1/self.n)*sum((Y_j_.sum(2))*(X_i_/p))
@@ -77,7 +77,7 @@ class GenerateValues:
         self.x_i = self.x0[0][np.random.randint(len(self.x0[0]),size=[25000,])]
         self.y_j = self.y0[0][np.random.randint(len(self.y0[0]),size=[25000,])]
 
-        self.fx_i_ = sum(np.exp(-np.power(self.X.reshape([1,len(self.X)])-self.x_i.reshape([len(self.x_i),1]),2)))
+        self.fx_i_ = sum(np.exp(-np.power(self.X.resize([1,len(self.X)])-self.x_i.resize([len(self.x_i),1]),2)))
 
         self.x0_ = self.Sample(self.X,self.fx_i_)
 
@@ -158,11 +158,11 @@ class GenerateValues:
 
         for ii in range(1,len(self.x_i_)):
 
-            self.Y_j_[:,:,ii] = self.A(self.y_j_[:,0,ii].reshape([1000]))
+            self.Y_j_[:,:,ii] = self.A(self.y_j_[:,0,ii].resize([1000]))
 
         self.Y_j_ = torch.Tensor(self.Y_j_).transpose(0,2)
 
-        self.P = torch.Tensor(self.p_x_i).reshape([1000,1])
+        self.P = torch.Tensor(self.p_x_i).resize([1000,1])
 
     def UseCuda(self):
 
@@ -201,7 +201,7 @@ while True:
     if np.mod(epoch,100) == 0:
 
         y = model.Activation( model.By(G.Y) )
-        y = y.reshape([1000])
+        y = y.resize([1000])
 
         fx_i = torch.Tensor(G.fx_i)
         fy_j = torch.Tensor(G.fy_j)
@@ -210,11 +210,11 @@ while True:
 
         for ii in range(len(fx_i)):
 
-            Y = Y + ((fx_i[ii])*(y*torch.Tensor(G.TransitionFunction(G.X,G.X[ii])))/sum(y*torch.Tensor(G.TransitionFunction(G.X,G.X[ii])))).reshape([1000,1])
+            Y = Y + ((fx_i[ii])*(y*torch.Tensor(G.TransitionFunction(G.X,G.X[ii])))/sum(y*torch.Tensor(G.TransitionFunction(G.X,G.X[ii])))).resize([1000,1])
 
         Y = Y.data.numpy()
 
-        Y = Y.reshape([1000])
+        Y = Y.resize([1000])
 
         print(sum(Y*np.log((Y+1e-8)/(G.fy_j+1e-8))))
 
