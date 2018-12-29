@@ -158,7 +158,7 @@ class GenerateValues:
 
         for ii in range(1,len(self.x_i_)):
 
-            self.Y_j_[:,:,ii] = self.A(self.y_j_[:,0,ii].resize([1000]))
+            self.Y_j_[:,:,ii] = self.A(self.y_j_[:,0,ii].reshape([1000]))
 
         self.Y_j_ = torch.Tensor(self.Y_j_).transpose(0,2)
 
