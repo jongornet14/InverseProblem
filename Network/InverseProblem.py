@@ -153,7 +153,6 @@ class GenerateValues:
         self.Y_j = torch.Tensor(self.A(self.y_j))
 
         self.X_i_ = torch.Tensor(self.A(self.x_i_))
-
         self.Y_j_ = np.ones([1000,self.fXnum,len(self.x_i_)])
 
         for ii in range(1,len(self.x_i_)):
@@ -161,8 +160,7 @@ class GenerateValues:
             self.Y_j_[:,:,ii] = self.A(self.y_j_[:,0,ii].reshape([1000]))
 
         self.Y_j_ = torch.Tensor(self.Y_j_).transpose(0,2)
-
-        self.P = torch.Tensor(self.p_x_i).resize([1000,1])
+        self.P = torch.Tensor([self.p_x_i])
 
     def UseCuda(self):
 
@@ -179,8 +177,8 @@ G = GenerateValues()
 model = SchrodingerBridge()
 model = model.cuda()
 
-optimizerX = optim.SGD(model.parameters(),lr=1e-3,momentum=1e-5,nesterov=True,weight_decay=0)
-optimizerY = optim.SGD(model.parameters(),lr=1e-3,momentum=1e-5,nesterov=True,weight_decay=0)
+optimizerX = optim.SGD(model.parameters(),lr=1e-2,momentum=1e-3,nesterov=True,weight_decay=0)
+optimizerY = optim.SGD(model.parameters(),lr=1e-2,momentum=1e-3,nesterov=True,weight_decay=0)
 
 while True:
 
@@ -202,7 +200,7 @@ while True:
 
     if np.mod(epoch,100) == 0:
 
-        y = model.Activation( model.By(G.Y) )
+        """y = model.Activation( model.By(G.Y) )
         y = y.resize([1000])
 
         fx_i = torch.Tensor(G.fx_i)
@@ -218,7 +216,7 @@ while True:
 
         Y = Y.resize([1000])
 
-        print(sum(Y*np.log((Y+1e-8)/(G.fy_j+1e-8))))
+        print(sum(Y*np.log((Y+1e-8)/(G.fy_j+1e-8))))"""
 
         print(lossX.data.numpy())
         print(lossY.data.numpy())
