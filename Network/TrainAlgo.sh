@@ -3,11 +3,12 @@
 #SBATCH --array=1
 #SBATCH --cpus-per-task=4
 #SBATCH --time=100:00:00
-#SBATCH --mem=62GB
-#SBATCH --job-name=SingleWeight
-#SBATCH --mail-type=END
+#SBATCH --mem=16GB
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=InverseProblem
+#SBATCH --mail-type=START,END
 #SBATCH --mail-user=jmg1030@nyu.edu
-#SBATCH --output=SingleWeight_%j.out
+#SBATCH --output=InverseProblem_%j.out
 
 n=${SLURM_ARRAY_TASK_ID}
 
