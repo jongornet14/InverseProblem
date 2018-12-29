@@ -7,29 +7,23 @@ from torch.autograd import Variable
 
 import scipy.stats
 
+cuda = torch.device('cuda')
+
 class SchrodingerBridge(nn.Module):
 
     def __init__(self):
 
         super(SchrodingerBridge,self).__init__()
 
-        self.embed_num    = 31
-        self.function_num = 10
-
+        self.embed_num  = 15
         self.output_num = 1
-        self.val_num    = 1000
+        self.val_num    = 25000
 
-        self.m = self.val_num
-        self.n = 10
+        self.m = 1000
+        self.n = 1000
 
-        self.BxC = nn.Conv1d(self.embed_num, self.function_num, 1, stride=5,bias=True)
-        self.ByC = nn.Conv1d(self.embed_num, self.function_num, 1, stride=5,bias=True)
-
-        self.Bx = nn.Linear(self.function_num,self.output_num,bias=True)
-        self.By = nn.Linear(self.function_num,self.output_num,bias=True)
-
-        self.Bx.weight.data = torch.zeros(1,self.function_num)
-        self.By.weight.data = torch.zeros(1,self.function_num)
+        self.Bx = nn.Linear(self.embed_num,self.output_num,bias=True)
+        self.By = nn.Linear(self.embed_num,self.output_num,bias=True)
 
         self.softplus = torch.nn.Softplus(beta=1,threshold=20)
 
@@ -39,36 +33,30 @@ class SchrodingerBridge(nn.Module):
 
     def LossX(self,x,y,x_,y_,p):
 
-        X_i = self.BxC(x)
-        Y_j = self.ByC(y)
+        X_i = self.Activation( self.Bx(x) )
+        Y_j = self.Activation( self.By(y) )
 
-        X_i_ = self.BxC(x_)
-        Y_j_ = self.ByC(y_)
+        X_i_ = self.Activation( self.Bx(x_) )
 
-        X_i = X_i.reshape([self.val_num,self.function_num])
-        Y_j = Y_j.reshape([self.val_num,self.function_num])
+        Y_j_ = self.Activation( F.conv1d(y_,self.By.weight.reshape([self.output_num,self.embed_num,1])) )
 
-        X_i_ = X_i_.reshape([self.val_num,self.function_num])
+        X = - (1/self.val_num)*sum(torch.log(X_i))
+        C = (1/self.m)*(1/self.n)*sum((Y_j_.sum(2))*(X_i_/p))
 
-        X = - (1/self.val_num)*sum(torch.log(self.Activation(self.Bx(X_i))))
-        C = (1/self.m)*(1/self.n)*sum(self.Activation(F.conv1d(Y_j_,self.By.weight.reshape([1,self.function_num,1]))).sum(2)*self.Activation(self.Bx(X_i_)/p))
         return X+C
 
     def LossY(self,x,y,x_,y_,p):
 
-        X_i = self.BxC(x)
-        Y_j = self.ByC(y)
+        X_i = self.softplus( self.Bx(x) ) + 1e-8
+        Y_j = self.softplus( self.By(y) ) + 1e-8
 
-        X_i_ = self.BxC(x_)
-        Y_j_ = self.ByC(y_)
+        X_i_ = self.softplus( self.Bx(x_) ) + 1e-8
 
-        X_i = X_i.reshape([self.val_num,self.function_num])
-        Y_j = Y_j.reshape([self.val_num,self.function_num])
+        Y_j_ = self.softplus( F.conv1d(y_,self.By.weight.reshape([self.output_num,self.embed_num,1])) ) + 1e-8
 
-        X_i_ = X_i_.reshape([self.val_num,self.function_num])
+        Y = - (1/self.val_num)*sum(torch.log(Y_j))
+        C = (1/self.m)*(1/self.n)*sum((Y_j_.sum(2))*(X_i_/p))
 
-        Y = - (1/self.val_num)*sum(torch.log(self.Activation(self.By(Y_j))))
-        C = (1/self.m)*(1/self.n)*sum(self.Activation(F.conv1d(Y_j_,self.By.weight.reshape([1,self.function_num,1]))).sum(2)*self.Activation(self.Bx(X_i_)/p))
         return Y+C
 
 class GenerateValues:
@@ -77,99 +65,69 @@ class GenerateValues:
 
         super(GenerateValues,self).__init__()
 
-        self.fXnum = 31
+        self.X = np.linspace(-15,15,1000)
+        self.dX = np.mean(np.diff(self.X))
 
-        self.X = np.linspace(-10,15,1000)
-
-        self.fx_i = scipy.stats.lognorm.pdf(self.X,1,loc=0,scale=1)/sum(scipy.stats.lognorm.pdf(self.X,1,loc=0,scale=1))
-        self.fy_j = scipy.stats.lognorm.pdf(self.X,1,loc=0,scale=3)/sum(scipy.stats.lognorm.pdf(self.X,1,loc=0,scale=3))
+        self.fx_i = scipy.stats.norm.pdf(self.X,loc=0,scale=1)/sum(scipy.stats.norm.pdf(self.X,loc=0,scale=1))
+        self.fy_j = scipy.stats.norm.pdf(self.X,loc=1,scale=3)/sum(scipy.stats.norm.pdf(self.X,loc=1,scale=3))
 
         self.x0 = self.Sample(self.X,self.fx_i)
         self.y0 = self.Sample(self.X,self.fy_j)
 
-        self.x0 = self.x0[0][np.random.randint(len(self.x0[0]),size=[1000,])]
-        self.y0 = self.y0[0][np.random.randint(len(self.y0[0]),size=[1000,])]
+        self.x_i = self.x0[0][np.random.randint(len(self.x0[0]),size=[25000,])]
+        self.y_j = self.y0[0][np.random.randint(len(self.y0[0]),size=[25000,])]
 
-        self.x_i = self.A(self.x0)
-        self.y_j = self.A(self.y0)
+        self.fx_i_ = sum(np.exp(-np.power(self.X.reshape([1,len(self.X)])-self.x_i.reshape([len(self.x_i),1]),2)))
 
-        fx_i_ = sum(np.exp(-np.power(self.X.reshape([1,len(self.X)])-self.x0.reshape([len(self.x0),1]),2)))
-
-        self.x0_ = self.Sample(self.X,fx_i_)
+        self.x0_ = self.Sample(self.X,self.fx_i_)
 
         R = np.random.randint(len(self.x0_[0]),size=[1000,])
 
-        self.x_i_ = self.A(self.x0_[0][R])
+        self.x_i_ = self.x0_[0][R]
         self.p_x_i = self.x0_[1][R]
 
-        self.y_j_ = np.ones([100,self.fXnum,len(self.x_i_)])
+        self.y_j_ = np.ones([1000,1,1000])
 
-        for ii in range(1,len(self.x_i_)):
+        self.lengths = np.zeros([len(self.x_i_),1])
+
+        for ii in range(0,len(self.x_i_)-1):
 
             self.y0_ = self.Sample(self.X,self.TransitionFunction(self.X,self.x0_[0][ii]))
-            self.y0_ = self.y0_[0][np.random.randint(len(self.y0_[0]),size=[100,])]
-            self.y_j_[:,:,ii] = self.A(self.y0_).transpose(0,1)
-
-        self.X_i = torch.Tensor(self.x_i)
-        self.Y_j = torch.Tensor(self.y_j)
-
-        self.X_i = self.X_i.reshape([1000,self.fXnum,1])
-        self.Y_j = self.Y_j.reshape([1000,self.fXnum,1])
-
-        self.X_i_ = torch.Tensor(self.x_i_)
-        self.X_i_ = self.X_i_.reshape([1000,self.fXnum,1])
-
-        self.Y_j_ = torch.Tensor(self.y_j_)
-        self.Y_j_ = self.Y_j_.transpose(0,2)
-
-        self.P = torch.Tensor(self.p_x_i)
-        self.P = self.P.reshape([1000,1])
+            self.y0_ = self.y0_[0][np.random.randint(len(self.y0_[0]),size=[1000,])]
+            self.y_j_[:,0,ii] = self.y0_
 
         self.Y = torch.Tensor(self.A(self.X))
 
+        self.makeFunctionSpace()
+        self.UseCuda()
+
     def TransitionFunction(self,x,y):
 
-        return np.exp(-np.power(x-y,2))/sum(np.exp(-np.power(x,2)))
+        return np.exp(-np.power(x-y,2))/sum(np.exp(-np.power(x-y,2)))
 
     def A(self,x):
 
+        self.fXnum = 15
+
         y = np.ones([len(x),self.fXnum])
 
-        y[:,0] = (2 * x)
-        y[:,1] = (4 * np.power(x,2)) - 2
-        y[:,2] = (8 * np.power(x,3)) - (12 * x)
-        y[:,3] = (16 * np.power(x,4)) - (48 * np.power(x,2)) + 12
-        y[:,4] = (32 * np.power(x,5)) - (160 * np.power(x,3)) + (120 * x)
-        y[:,5] = (64 * np.power(x,5)) - (480 * np.power(x,3)) + (720 * np.power(x,2)) - 120
-        y[:,6] = (128 * np.power(x,7)) - (1344 * np.power(x,5)) + (3360 * np.power(x,3)) - 1680
-        y[:,7] = (256 * np.power(x,8)) - (3584 * np.power(x,6)) + (13440 * np.power(x,4)) - (13440 * np.power(x,2)) + 1680
-        y[:,8] = (512 * np.power(x,9)) - (9216 * np.power(x,7)) + (48384 * np.power(x,5)) - (80640 * np.power(x,3)) + 30240 * x
-        y[:,9] = (1024 * np.power(x,10)) - (23040 * np.power(x,8)) + (161280 * np.power(x,6)) - (403200 * np.power(x,4)) + (302400 * np.power(x,2)) - 30240
+        y[:,0] = x * np.exp(-np.power(x,2))
+        y[:,1] = np.power(x,2) * np.exp(-np.power(x,2))
+        y[:,2] = np.power(x,3) * np.exp(-np.power(x,2))
+        y[:,3] = np.power(x,4) * np.exp(-np.power(x,2))
+        y[:,4] = np.power(x,5) * np.exp(-np.power(x,2))
 
-        y[:,10] = np.exp(- 3 * x)
-        y[:,11] = np.exp(- 2 * x)
-        y[:,12] = np.exp(- 1 * x)
-        y[:,13] = np.exp(1 * x)
-        y[:,14] = np.exp(2 * x)
-        y[:,15] = np.exp(3 * x)
+        y[:,5] = x * np.exp(-np.power(x,2)/2)
+        y[:,6] = np.power(x,2) * np.exp(-np.power(x,2)/5)
+        y[:,7] = np.power(x,3) * np.exp(-np.power(x,2)/5)
+        y[:,8] = np.power(x,4) * np.exp(-np.power(x,2)/5)
+        y[:,9] = np.power(x,5) * np.exp(-np.power(x,2)/5)
 
-        y[:,16] = x * np.exp(-np.power(x,2))
-        y[:,17] = np.power(x,2) * np.exp(-np.power(x,2))
-        y[:,18] = np.power(x,3) * np.exp(-np.power(x,2))
-        y[:,19] = np.power(x,4) * np.exp(-np.power(x,2))
-        y[:,20] = np.power(x,5) * np.exp(-np.power(x,2))
-
-        y[:,21] = x * np.exp(-np.power(x,2)/2)
-        y[:,22] = np.power(x,2) * np.exp(-np.power(x,2)/2)
-        y[:,23] = np.power(x,3) * np.exp(-np.power(x,2)/2)
-        y[:,24] = np.power(x,4) * np.exp(-np.power(x,2)/2)
-        y[:,25] = np.power(x,5) * np.exp(-np.power(x,2)/2)
-
-        y[:,26] = x * np.exp(-np.power(x,2)/3)
-        y[:,27] = np.power(x,2) * np.exp(-np.power(x,2)/3)
-        y[:,28] = np.power(x,3) * np.exp(-np.power(x,2)/3)
-        y[:,29] = np.power(x,4) * np.exp(-np.power(x,2)/3)
-        y[:,30] = np.power(x,5) * np.exp(-np.power(x,2)/3)
+        y[:,10] = x * np.exp(-np.power(x,2)/3)
+        y[:,11] = np.power(x,2) * np.exp(-np.power(x,2)/10)
+        y[:,12] = np.power(x,3) * np.exp(-np.power(x,2)/10)
+        y[:,13] = np.power(x,4) * np.exp(-np.power(x,2)/10)
+        y[:,14] = np.power(x,5) * np.exp(-np.power(x,2)/10)
 
         return y
 
@@ -189,35 +147,78 @@ class GenerateValues:
 
         return x_i,p_x_i
 
-G = GenerateValues()
+    def makeFunctionSpace(self):
+
+        self.X_i = torch.Tensor(self.A(self.x_i))
+        self.Y_j = torch.Tensor(self.A(self.y_j))
+
+        self.X_i_ = torch.Tensor(self.A(self.x_i_))
+
+        self.Y_j_ = np.ones([1000,self.fXnum,len(self.x_i_)])
+
+        for ii in range(1,len(self.x_i_)):
+
+            self.Y_j_[:,:,ii] = self.A(self.y_j_[:,0,ii].reshape([1000]))
+
+        self.Y_j_ = torch.Tensor(self.Y_j_).transpose(0,2)
+
+        self.P = torch.Tensor(self.p_x_i).reshape([1000,1])
+
+    def UseCuda(self):
+
+        self.X_i = self.X_i.to(device=cuda)
+        self.Y_j = self.Y_j.to(device=cuda)
+
+        self.X_i_ = self.X_i_.to(device=cuda)
+        self.Y_j_ = self.Y_j_.to(device=cuda)
+
+        self.P = self.P.to(device=cuda)
 
 model = SchrodingerBridge()
-optimizer = optim.Adadelta(model.parameters(), lr = 1e-1)
+model = model.to(device=cuda)
 
-for epoch in range(1000000):
+optimizerX = optim.SGD(model.parameters(),lr=1e-3,momentum=1e-5,nesterov=True,weight_decay=0)
+optimizerY = optim.SGD(model.parameters(),lr=1e-3,momentum=1e-5,nesterov=True,weight_decay=0)
 
-    optimizer.zero_grad()
+while True:
+
+    optimizerX.zero_grad()
 
     lossX = model.LossX(G.X_i,G.Y_j,G.X_i_,G.Y_j_,G.P)
     lossX.backward()
-    optimizer.step()
+    torch.nn.utils.clip_grad_value_(model.parameters(), 1e3)
 
-    optimizer.zero_grad()
+    optimizerX.step()
+
+    optimizerY.zero_grad()
 
     lossY = model.LossY(G.X_i,G.Y_j,G.X_i_,G.Y_j_,G.P)
     lossY.backward()
-    optimizer.step()
+    torch.nn.utils.clip_grad_value_(model.parameters(), 1e3)
+
+    optimizerY.step()
 
     if np.mod(epoch,100) == 0:
 
-        Y = model.ByC(torch.tensor(G.Y).reshape([1000,model.embed_num,1]))
-        Y = Y.reshape([1000,model.function_num])
-        Y = model.Activation(model.By(Y))
-        Y = Y.data.numpy()
-        Y = np.convolve(G.fx_i,Y.reshape([1000])*G.TransitionFunction(G.X,0)/sum(Y.reshape([1000])*G.TransitionFunction(G.X,0)),"same")
+        y = model.Activation( model.By(G.Y) )
+        y = y.reshape([1000])
 
-        torch.save(model.state_dict(), PATH)
+        fx_i = torch.Tensor(G.fx_i)
+        fy_j = torch.Tensor(G.fy_j)
+
+        Y = torch.zeros(1000,1)
+
+        for ii in range(len(fx_i)):
+
+            Y = Y + ((fx_i[ii])*(y*torch.Tensor(G.TransitionFunction(G.X,G.X[ii])))/sum(y*torch.Tensor(G.TransitionFunction(G.X,G.X[ii])))).reshape([1000,1])
+
+        Y = Y.data.numpy()
+
+        Y = Y.reshape([1000])
 
         print(sum(Y*np.log((Y+1e-8)/(G.fy_j+1e-8))))
+
         print(lossX.data.numpy())
         print(lossY.data.numpy())
+
+        torch.save(model.state_dict(), PATH)
