@@ -395,7 +395,7 @@ def saveModels():
         bridgemodel = bridges[b]
         torch.save(bridgemodel.state_dict(), PATH)
 
-data = np.loadtxt(open('mnist_train.csv', 'rb'), delimiter=',', skiprows=1)
+data = np.loadtxt(open('/home/jmg1030/Documents/AutoEncoders/mnist_train.csv', 'rb'), delimiter=',', skiprows=1)
 
 images = np.zeros([10,1000,785])
 num = 0
