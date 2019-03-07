@@ -431,6 +431,8 @@ while True:
 
     for batch in range(10):
 
+        print('Batch num: ' + str(batch))
+
         torchimage = torch.Tensor(images[batch,:,1:785]).reshape([1000,1,28,28]).cuda()
 
         for epoch in range(10):
