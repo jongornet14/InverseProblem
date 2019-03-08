@@ -421,6 +421,8 @@ def loadData():
                 images[ii,:,:] = image
                 break
 
+distributions = Distributions()
+
 images = np.zeros([10,1000,785])
 loadData()
 
