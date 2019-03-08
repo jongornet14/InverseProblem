@@ -357,7 +357,7 @@ def BridgeLossFunction(num,epoch,LmuX,LmuY):
         optimizerBridges[b].zero_grad()
         LossX.backward()
 
-        LmuX = ((1/(10*model.dist_size))*LossX.cpu().data.numpy()[0]) + LmuX
+        LmuX = ((1/(model.dist_size))*LossX.cpu().data.numpy()[0]) + LmuX
 
         optimizerBridges[b].step()
 
@@ -372,11 +372,11 @@ def BridgeLossFunction(num,epoch,LmuX,LmuY):
         optimizerBridges[b].zero_grad()
         LossY.backward()
 
-        LmuY = ((1/(10*model.dist_size))*LossY.cpu().data.numpy()[0]) + LmuY
+        LmuY = ((1/(model.dist_size))*LossY.cpu().data.numpy()[0]) + LmuY
 
         optimizerBridges[b].step()
 
-    if num == 9 & epoch == 999:
+    if num == 9:
 
         print('Bridge Loss X: ' + str(LmuX))
         print('Bridge Loss Y: ' + str(LmuY))
