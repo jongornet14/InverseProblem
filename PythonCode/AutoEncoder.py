@@ -2,12 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import numpy as np
 from torch.autograd import Variable
 
+import numpy as np
 import matplotlib.pyplot as plt
-
 import scipy.stats
+import os
 
 class AutoEncoderBridgeConv(nn.Module):
 
@@ -376,7 +376,7 @@ def BridgeLossFunction(num,epoch,LmuX,LmuY):
 
         optimizerBridges[b].step()
 
-    if num == 9 & epoch == 9:
+    if num == 9 & epoch == 999:
 
         print('Bridge Loss X: ' + str(LmuX))
         print('Bridge Loss Y: ' + str(LmuY))
@@ -395,29 +395,39 @@ def saveModels():
         bridgemodel = bridges[b]
         torch.save(bridgemodel.state_dict(), PATH)
 
-data = np.loadtxt(open('/home/jmg1030/Documents/AutoEncoders/mnist_train.csv', 'rb'), delimiter=',', skiprows=1)
+def loadModels():
+
+    PATH = '/home/jmg1030/Documents/AutoEncoders/encoder.pth'
+    if os.path.exists(PATH):
+        model.load_state_dict(torch.load(PATH))
+        model.eval()
+
+    for b in range(model.dist_size):
+        PATH = '/home/jmg1030/Documents/AutoEncoders/bridge_num_' + str(b) + '.pth'
+        if os.path.exists(PATH):
+            bridges[b].load_state_dict(torch.load(PATH))
+
+def loadData():
+
+    data = np.loadtxt(open('/home/jmg1030/Documents/AutoEncoders/mnist_train.csv', 'rb'), delimiter=',', skiprows=1)
+    for ii in range(10):
+        image = np.zeros([1000,785])
+        num = 0
+        for jj in range(60000):
+            if data[jj,0] == ii:
+                image[num,:] = data[jj,:]
+                num += 1
+            if num == 1000:
+                images[ii,:,:] = image
+                break
 
 images = np.zeros([10,1000,785])
-num = 0
-
-for ii in range(10):
-    image = np.zeros([1000,785])
-    num = 0
-    for jj in range(60000):
-        if data[jj,0] == ii:
-            image[num,:] = data[jj,:]
-            num += 1
-        if num == 1000:
-            images[ii,:,:] = image
-            break
+loadData()
 
 cuda = torch.device('cuda')
-
-bridges = []
 model = AutoEncoderBridgeConv().cuda()
-bridges = [Bridge().cuda() for ii in range(model.hidden_size)]
-
-distributions = Distributions()
+bridges = [Bridge().cuda() for b in range(model.hidden_size)]
+loadModels()
 
 optimizerBridges = [torch.optim.SGD(model.parameters(),lr=1e-2,momentum=1e-3) for ii in range(model.hidden_size)]
 optimizerAutoencoder = torch.optim.Adam(model.parameters(),lr=1e-3,amsgrad=True)
@@ -426,6 +436,7 @@ LmuX = 0
 LmuY = 0
 
 imageLoss = 0
+imageArray = []
 
 while True:
 
@@ -438,7 +449,9 @@ while True:
         for epoch in range(10):
             AutoEncoderLossFunction(batch,epoch,torchimage,imageLoss)
             distributions.movetoCuda()
-        for epoch in range(10):
+        for epoch in range(1000):
             BridgeLossFunction(batch,epoch,LmuX,LmuY)
 
         saveModels()
+
+    imageArray.append(imageLoss)
