@@ -344,7 +344,7 @@ def BridgeLossFunction(num,epoch,LmuX,LmuY):
         y_j = distributions.y_j[batch,b,:]
         x_i_ = distributions.x_i_[batch,b,:]
         y_j_ = distributions.y_j_[batch,b,:,:]
-        P = distributions.P[batch,ii,:]
+        P = distributions.P[batch,b,:]
 
         bridges[b].Bx.weight.requires_grad = True
         bridges[b].Bx.bias.requires_grad = True
