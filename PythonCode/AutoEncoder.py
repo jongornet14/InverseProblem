@@ -376,7 +376,7 @@ def BridgeLossFunction(num,epoch,LmuX,LmuY):
 
         optimizerBridges[b].step()
 
-    if num == 9:
+    if epoch == 999:
 
         print('Bridge Loss X: ' + str(LmuX))
         print('Bridge Loss Y: ' + str(LmuY))
